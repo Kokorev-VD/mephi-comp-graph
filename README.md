@@ -20,10 +20,10 @@
 ## Сборка
 #### Для запуска кода с Лабораторная работа No 1
 ```bash
-./gradlew run --args="lab1.MainKt" 
+./gradlew run --args="lab1.Lab1MainKt" 
 ```
 
 #### Для запуска кода с Лабораторная работа No 2
 ```bash
-./gradlew run --args="lab2.MainKt" 
+./gradlew run --args="lab2.Lab2MainKt" 
 ```
