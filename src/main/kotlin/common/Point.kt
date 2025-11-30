@@ -34,3 +34,16 @@ fun drawLine(image: Image8bpp, start: Point, end: Point, color: UByte) {
         }
     }
 }
+
+fun drawPoint(image: Image8bpp, point: Point, color: UByte) {
+    val size = 3
+    for (dy in -size..size) {
+        for (dx in -size..size) {
+            val x = point.x + dx
+            val y = point.y + dy
+            if (x >= 0 && x < image.width && y >= 0 && y < image.height) {
+                image.setPixel(x, y, color)
+            }
+        }
+    }
+}
