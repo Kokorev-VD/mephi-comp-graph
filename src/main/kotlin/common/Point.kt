@@ -1,36 +1,50 @@
 package common
 
-import kotlin.math.abs
 
 data class Point(val x: Int, val y: Int)
 
 fun drawLine(image: Image8bpp, start: Point, end: Point, color: UByte) {
-    var x0 = start.x
-    var y0 = start.y
-    val x1 = end.x
-    val y1 = end.y
+    var x = start.x
+    var y = start.y
+    var dx = end.x - start.x
+    var dy = end.y - start.y
 
-    val dx = abs(x1 - x0)
-    val dy = abs(y1 - y0)
-    val sx = if (x0 < x1) 1 else -1
-    val sy = if (y0 < y1) 1 else -1
-    var err = dx - dy
+    val ix = when {
+        dx > 0 -> 1
+        dx < 0 -> { dx = -dx; -1 }
+        else -> 0
+    }
 
-    while (true) {
-        if (x0 >= 0 && x0 < image.width && y0 >= 0 && y0 < image.height) {
-            image.setPixel(x0, y0, color)
+    val iy = when {
+        dy > 0 -> 1
+        dy < 0 -> { dy = -dy; -1 }
+        else -> 0
+    }
+
+    val steps = if (dx >= dy) dx else dy
+    var e = if (dx >= dy) 2 * dy - dx else 2 * dx - dy
+
+    repeat(steps + 1) {
+        if (x in 0 until image.width && y in 0 until image.height) {
+            image.setPixel(x, y, color)
         }
 
-        if (x0 == x1 && y0 == y1) break
-
-        val e2 = 2 * err
-        if (e2 > -dy) {
-            err -= dy
-            x0 += sx
-        }
-        if (e2 < dx) {
-            err += dx
-            y0 += sy
+        if (dx >= dy) {
+            val shouldChange = if (iy >= 0) e >= 0 else e > 0
+            if (shouldChange) {
+                y += iy
+                e -= 2 * dx
+            }
+            x += ix
+            e += 2 * dy
+        } else {
+            val shouldChange = if (ix >= 0) e >= 0 else e > 0
+            if (shouldChange) {
+                x += ix
+                e -= 2 * dy
+            }
+            y += iy
+            e += 2 * dx
         }
     }
 }
