@@ -1,5 +1,6 @@
 package lab4
 
+import common.FillRule
 import common.Image8bpp
 import common.Point
 import common.Polygon
@@ -82,6 +83,30 @@ fun main() {
     )
     drawClipping(clipPolygon, lines, task2Result, "cyrus_beck_clipping.png")
 
+    val clipPolygonCCW = Polygon(
+        listOf(
+            Point(200, 150),
+            Point(150, 350),
+            Point(350, 400),
+            Point(450, 300),
+            Point(400, 150)
+        )
+    )
+
+    val linesDegenerate = listOf(
+        Point(250, 200) to Point(350, 300),
+        Point(300, 250) to Point(300, 250),
+        Point(200, 200) to Point(400, 200),
+        Point(250, 100) to Point(250, 450),
+        Point(100, 250) to Point(150, 250),
+        Point(450, 250) to Point(500, 250),
+        Point(280, 300) to Point(320, 300),
+        Point(200, 150) to Point(400, 150),
+        Point(50, 150) to Point(550, 150),
+        Point(300, 300) to Point(300, 300)
+    )
+    drawClipping(clipPolygonCCW, linesDegenerate, task2Result, "cyrus_beck_ccw_degenerate.png")
+
     val clipPolygon2 = Polygon(
         listOf(
             Point(150, 100),
@@ -110,6 +135,57 @@ fun main() {
 
     println("Результат задачи 2 сохранен: $task2Result\n")
 
+    println("Задача 3. Отсечение полигона алгоритмом Сазерленда-Ходжмана")
+    val task3Result = mutableListOf<String>()
+
+    val clipConvex = Polygon(
+        listOf(
+            Point(200, 100),
+            Point(400, 150),
+            Point(450, 350),
+            Point(300, 450),
+            Point(150, 400)
+        )
+    )
+
+    val subjectPolygon1 = Polygon(
+        listOf(
+            Point(100, 200),
+            Point(300, 100),
+            Point(500, 200),
+            Point(450, 400),
+            Point(200, 450),
+            Point(150, 300)
+        )
+    )
+
+    drawPolygonClipping(clipConvex, subjectPolygon1, task3Result, "sutherland_hodgman_1.png")
+
+    val subjectPolygon2 = Polygon(
+        listOf(
+            Point(250, 150),
+            Point(350, 200),
+            Point(320, 320),
+            Point(280, 280)
+        )
+    )
+
+    drawPolygonClipping(clipConvex, subjectPolygon2, task3Result, "sutherland_hodgman_2.png")
+
+    val subjectPolygon3 = Polygon(
+        listOf(
+            Point(100, 250),
+            Point(500, 100),
+            Point(550, 300),
+            Point(400, 250),
+            Point(450, 150)
+        )
+    )
+
+    drawPolygonClipping(clipConvex, subjectPolygon3, task3Result, "sutherland_hodgman_3.png")
+
+    println("Результат задачи 3 сохранен: $task3Result\n")
+
     println("\nРезультаты задач сохранены тут: src/main/resources/lab4/")
 }
 
@@ -130,19 +206,37 @@ fun drawClipping(clipPoligon: Polygon, lines: List<Pair<Point, Point>>, task2Res
     val imageClipping = Image8bpp(600, 500)
     imageClipping.fill(255u)
 
-    clipPoligon.draw(imageClipping, 0u)
-
     for ((p1, p2) in lines) {
         drawLine(imageClipping, p1, p2, 200u)
     }
 
+    clipPoligon.draw(imageClipping, 0u)
+
     for ((p1, p2) in lines) {
         val clipped = cyrusBeckClip(p1, p2, clipPoligon)
         if (clipped != null) {
-            drawLine(imageClipping, clipped.first, clipped.second, 0u)
+            drawLine(imageClipping, clipped.first, clipped.second, 50u)
         }
     }
 
     imageClipping.save(imageName)
     task2Result.add(imageName)
+}
+
+fun drawPolygonClipping(clipPolygon: Polygon, subjectPolygon: Polygon, task3Result: MutableList<String>, imageName: String) {
+    val imagePolygonClipping = Image8bpp(600, 500)
+    imagePolygonClipping.fill(255u)
+
+    clipPolygon.draw(imagePolygonClipping, 0u)
+    subjectPolygon.draw(imagePolygonClipping, 200u)
+
+    val clippedPolygons = sutherlandHodgmanClip(subjectPolygon, clipPolygon)
+
+    for (clipped in clippedPolygons) {
+        clipped.draw(imagePolygonClipping, 100u)
+        clipped.fill(imagePolygonClipping, FillRule.EVEN_ODD, 150u)
+    }
+
+    imagePolygonClipping.save(imageName)
+    task3Result.add(imageName)
 }

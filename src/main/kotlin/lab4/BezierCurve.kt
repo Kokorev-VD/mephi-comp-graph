@@ -4,6 +4,9 @@ import common.Image8bpp
 import common.Point
 import common.drawLine
 import common.drawPoint
+import kotlin.math.abs
+import kotlin.math.max
+import kotlin.math.sqrt
 
 class BezierCurve(
     private val p0: Point,
@@ -11,7 +14,23 @@ class BezierCurve(
     private val p2: Point,
     private val p3: Point
 ) {
-    fun draw(image: Image8bpp, color: UByte, steps: Int = 100) {
+    private fun calculateSteps(): Int {
+        val d1x = p0.x - 2 * p1.x + p2.x
+        val d1y = p0.y - 2 * p1.y + p2.y
+        val d2x = p1.x - 2 * p2.x + p3.x
+        val d2y = p1.y - 2 * p2.y + p3.y
+
+        val dist1 = abs(d1x) + abs(d1y)
+        val dist2 = abs(d2x) + abs(d2y)
+
+        val h = max(dist1, dist2).toDouble()
+        val n = 1 + sqrt(3.0 * h)
+
+        return n.toInt().coerceIn(10, 1000)
+    }
+
+    fun draw(image: Image8bpp, color: UByte) {
+        val steps = calculateSteps()
         var prevPoint = getPoint(0.0)
 
         for (i in 1..steps) {

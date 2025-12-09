@@ -12,13 +12,19 @@ fun cyrusBeckClip(p1: Point, p2: Point, polygon: Polygon): Pair<Point, Point>? {
     var tLeave = 1.0
 
     val vertices = polygon.vertices
+    val clockwise = polygon.isClockwise()
 
     for (i in vertices.indices) {
         val edgeStart = vertices[i]
         val edgeEnd = vertices[(i + 1) % vertices.size]
 
         val edge = Point(edgeEnd.x - edgeStart.x, edgeEnd.y - edgeStart.y)
-        val normal = Point(-edge.y, edge.x)
+
+        val normal = if (clockwise) {
+            Point(edge.y, -edge.x)
+        } else {
+            Point(-edge.y, edge.x)
+        }
 
         val w = Point(p1.x - edgeStart.x, p1.y - edgeStart.y)
 
@@ -34,7 +40,7 @@ fun cyrusBeckClip(p1: Point, p2: Point, polygon: Polygon): Pair<Point, Point>? {
                 tLeave = min(tLeave, t)
             }
         } else {
-            if (numerator < 0) {
+            if (numerator > 0) {
                 return null
             }
         }

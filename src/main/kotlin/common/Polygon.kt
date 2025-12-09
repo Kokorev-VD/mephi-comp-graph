@@ -32,6 +32,15 @@ class Polygon(val vertices: List<Point>) {
         }
     }
 
+    fun isClockwise(): Boolean {
+        var area = 0.0
+        for (i in vertices.indices) {
+            val j = (i + 1) % vertices.size
+            area += (vertices[j].x - vertices[i].x) * (vertices[j].y + vertices[i].y)
+        }
+        return area > 0
+    }
+
     private fun findIntersections(y: Int): List<Pair<Int, Int>> {
         val intersections = mutableListOf<Pair<Int, Int>>()
 
