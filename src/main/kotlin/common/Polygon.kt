@@ -94,6 +94,8 @@ class Polygon(val vertices: List<Point>) {
     fun isConvex(): Boolean {
         if (vertices.size < 3) return false
 
+        if (!isSimple()) return false
+
         val f = sign(prod(vertices[0], vertices[1], vertices[2]))
 
         for (i in 1 until vertices.size) {

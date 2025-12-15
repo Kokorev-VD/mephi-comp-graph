@@ -13,6 +13,7 @@ fun main() {
 
     val polygons = listOf(
         "triangle" to createTriangle(300, 250, 120.0),
+        "concave_quad" to createConcaveQuad(300, 250),
         "star" to createStar(300, 250, 100.0),
         "complex1" to createComplexShape1(300, 250, 100.0),
         "complex2" to createComplexShape2(300, 250, 100.0),
@@ -68,6 +69,13 @@ fun createTriangle(cx: Int, cy: Int, size: Double): Polygon {
 
     return Polygon(vertices)
 }
+
+fun createConcaveQuad(cx: Int, cy: Int): Polygon = Polygon(listOf(
+        Point(cx - 100, cy - 80),
+        Point(cx + 100, cy - 80),
+        Point(cx, cy),
+        Point(cx, cy + 80)
+    ))
 
 fun createStar(cx: Int, cy: Int, radius: Double): Polygon {
     val vertices = mutableListOf<Point>()
