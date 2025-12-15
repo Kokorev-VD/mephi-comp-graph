@@ -31,7 +31,13 @@ fun main() {
     }
     println("Результат задачи 1-2 сохранен: $task1Result\n")
 
-    println("Задача 3-4. Заполнение полигона (even-odd vs non-zero-winding)")
+    println("Задача 3. Определение типа полигона\n")
+    polygons.forEach { (name, polygon) ->
+        println("$name: ${if(polygon.isConvex()) "выпуклый" else "невыпуклый"}, ${if(polygon.isSimple()) "без самопересечений" else "с самопересечениями"}")
+    }
+
+    println()
+    println("Задача 4. Заполнение полигона (even-odd vs non-zero-winding)")
     val task2Result = mutableListOf<String>()
     for ((name, polygon) in polygons) {
         val imageEvenOdd = Image8bpp(600, 500)

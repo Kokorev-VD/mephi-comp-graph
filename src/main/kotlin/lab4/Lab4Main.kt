@@ -133,6 +133,17 @@ fun main() {
 
     drawClipping(clipPolygon2, lines2, task2Result, "cyrus_beck_clipping_2.png")
 
+    val linesEdgeCases = listOf(
+        Point(300, 250) to Point(300, 250),
+        Point(50, 50) to Point(50, 50),
+        Point(200, 150) to Point(200, 150),
+        Point(200, 150) to Point(400, 150),
+        Point(150, 350) to Point(350, 400),
+        Point(100, 100) to Point(200, 150),
+        Point(400, 150) to Point(500, 100),
+    )
+    drawClipping(clipPolygonCCW, linesEdgeCases, task2Result, "cyrus_beck_edge_cases.png")
+
     println("Результат задачи 2 сохранен: $task2Result\n")
 
     println("Задача 3. Отсечение полигона алгоритмом Сазерленда-Ходжмана")
@@ -183,6 +194,38 @@ fun main() {
     )
 
     drawPolygonClipping(clipConvex, subjectPolygon3, task3Result, "sutherland_hodgman_3.png")
+
+    val degeneratePoint = Polygon(
+        listOf(
+            Point(300, 250),
+            Point(300, 250),
+            Point(300, 250)
+        )
+    )
+    drawPolygonClipping(clipConvex, degeneratePoint, task3Result, "sutherland_hodgman_point.png")
+
+    val degenerateLine = Polygon(
+        listOf(
+            Point(150, 200),
+            Point(300, 300),
+            Point(450, 400)
+        )
+    )
+    drawPolygonClipping(clipConvex, degenerateLine, task3Result, "sutherland_hodgman_line.png")
+
+    val duplicatedVertices = Polygon(
+        listOf(
+            Point(250, 200),
+            Point(250, 200),
+            Point(350, 200),
+            Point(350, 200),
+            Point(350, 350),
+            Point(350, 350),
+            Point(250, 350),
+            Point(250, 350)
+        )
+    )
+    drawPolygonClipping(clipConvex, duplicatedVertices, task3Result, "sutherland_hodgman_duplicates.png")
 
     println("Результат задачи 3 сохранен: $task3Result\n")
 

@@ -1,7 +1,7 @@
 package common
 
-import kotlin.math.min
 import kotlin.math.max
+import kotlin.math.min
 
 enum class FillRule {
     EVEN_ODD,
@@ -39,6 +39,72 @@ class Polygon(val vertices: List<Point>) {
             area += (vertices[j].x - vertices[i].x) * (vertices[j].y + vertices[i].y)
         }
         return area > 0
+    }
+
+    fun isSimple(): Boolean {
+        for (i in vertices.indices) {
+            for (j in i + 2 until vertices.size) {
+                val (a, b, c, d) = listOf(vertices[i], vertices[(i + 1) % vertices.size], vertices[j], vertices[(j + 1) % vertices.size])
+
+                val (p1, p2, p3, p4) = listOf(prod(a, b, c), prod(a, b, d), prod(c, d, a), prod(c, d, b))
+
+                if (p1 * p2 < 0 && p3 * p4 < 0) {
+                    return false
+                }
+
+                if (p1 == 0 && p2 == 0 && p3 == 0 && p4 == 0) {
+                    if (doCollinearSegmentsOverlap(a, b, c, d)) {
+                        return false
+                    }
+                }
+            }
+        }
+        return true
+    }
+
+    // проверка для вырожденных случаев
+    private fun doCollinearSegmentsOverlap(a: Point, b: Point, c: Point, d: Point): Boolean {
+        val overlaps: (Int, Int, Int, Int) -> Boolean = lambda@{ a1, a2, b1, b2 ->
+            val minA = min(a1, a2)
+            val maxA = max(a1, a2)
+            val minB = min(b1, b2)
+            val maxB = max(b1, b2)
+
+            if (minA == maxA && minB == maxB) {
+                return@lambda minA == minB
+            }
+
+            return@lambda maxA > minB && maxB > minA
+        }
+
+        val xOverlap = overlaps(a.x, b.x, c.x, d.x)
+        val yOverlap = overlaps(a.y, b.y, c.y, d.y)
+
+        if (a.y == b.y && c.y == d.y && a.y == c.y) {
+            return xOverlap
+        }
+
+        if (a.x == b.x && c.x == d.x && a.x == c.x) {
+            return yOverlap
+        }
+
+        return xOverlap && yOverlap
+    }
+
+    fun isConvex(): Boolean {
+        if (vertices.size < 3) return false
+
+        val f = sign(prod(vertices[0], vertices[1], vertices[2]))
+
+        for (i in 1 until vertices.size) {
+            val m = prod(vertices[i], vertices[(i + 1) % vertices.size], vertices[(i + 2) % vertices.size])
+            if (sign(m) != f) return false
+        }
+        return true
+    }
+
+    private fun prod(a: Point, b: Point, c: Point): Int {
+        return (c.x - a.x) * (b.y - a.y) - (b.x - a.x) * (c.y - a.y)
     }
 
     private fun findIntersections(y: Int): List<Pair<Int, Int>> {
