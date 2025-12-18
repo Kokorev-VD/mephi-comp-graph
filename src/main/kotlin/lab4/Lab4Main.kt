@@ -227,6 +227,19 @@ fun main() {
     )
     drawPolygonClipping(clipConvex, duplicatedVertices, task3Result, "sutherland_hodgman_duplicates.png")
 
+    val subjectOnEdges = Polygon(
+        listOf(
+            Point(300, 125),
+            Point(425, 250),
+            Point(375, 400),
+            Point(225, 425),
+            Point(175, 250),
+        )
+    )
+
+    drawPolygonClipping(clipConvex, subjectOnEdges, task3Result, "sutherland_hodgman_vertices_on_edges_1.png")
+    drawPolygonClipping(subjectOnEdges, clipConvex, task3Result, "sutherland_hodgman_vertices_on_edges_2.png")
+
     println("Результат задачи 3 сохранен: $task3Result\n")
 
     println("\nРезультаты задач сохранены тут: src/main/resources/lab4/")

@@ -35,9 +35,14 @@ private fun lineIntersection(p1: Point, p2: Point, p3: Point, p4: Point): Point?
 
 fun sutherlandHodgmanClip(subject: Polygon, clipPolygon: Polygon): List<Polygon> {
     val clipVertices = clipPolygon.vertices
-    val clockwise = clipPolygon.isClockwise()
+    val clipClockwise = clipPolygon.isClockwise()
+    val subjectClockwise = subject.isClockwise()
 
-    var outputList = subject.vertices.toMutableList()
+    var outputList = if (clipClockwise != subjectClockwise) {
+        subject.vertices.reversed().toMutableList()
+    } else {
+        subject.vertices.toMutableList()
+    }
 
     for (i in clipVertices.indices) {
         if (outputList.isEmpty()) break
@@ -52,8 +57,8 @@ fun sutherlandHodgmanClip(subject: Polygon, clipPolygon: Polygon): List<Polygon>
             val currentVertex = inputList[j]
             val previousVertex = if (j == 0) inputList[inputList.size - 1] else inputList[j - 1]
 
-            val currentInside = isInside(currentVertex, edgeStart, edgeEnd, clockwise)
-            val previousInside = isInside(previousVertex, edgeStart, edgeEnd, clockwise)
+            val currentInside = isInside(currentVertex, edgeStart, edgeEnd, clipClockwise)
+            val previousInside = isInside(previousVertex, edgeStart, edgeEnd, clipClockwise)
 
             if (previousInside && currentInside) {
                 outputList.add(currentVertex)
@@ -71,10 +76,5 @@ fun sutherlandHodgmanClip(subject: Polygon, clipPolygon: Polygon): List<Polygon>
             }
         }
     }
-
-    if (outputList.size < 3) {
-        return emptyList()
-    }
-
     return listOf(Polygon(outputList))
 }
