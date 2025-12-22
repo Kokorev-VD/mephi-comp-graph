@@ -23,7 +23,7 @@ kotlin {
 }
 
 application {
-    mainClass.set("lab1.Lab1MainKt")
+    mainClass.set("lab5.Lab5MainKt")
 }
 
 tasks.withType<JavaExec> {
