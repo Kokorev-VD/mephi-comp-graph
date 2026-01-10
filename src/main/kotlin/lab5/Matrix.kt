@@ -70,6 +70,28 @@ data class Matrix(
             )
         }
 
+        fun twoPointPerspective(kx: Double, kz: Double): Matrix {
+            return Matrix(
+                listOf(
+                    listOf(1.0, 0.0, 0.0, -1.0 / kx),
+                    listOf(0.0, 1.0, 0.0, 0.0),
+                    listOf(0.0, 0.0, 1.0, -1.0 / kz),
+                    listOf(0.0, 0.0, 0.0, 1.0)
+                )
+            )
+        }
+
+        fun threePointPerspective(kx: Double, ky: Double, kz: Double): Matrix {
+            return Matrix(
+                listOf(
+                    listOf(1.0, 0.0, 0.0, -1.0 / kx),
+                    listOf(0.0, 1.0, 0.0, -1.0 / ky),
+                    listOf(0.0, 0.0, 1.0, -1.0 / kz),
+                    listOf(0.0, 0.0, 0.0, 1.0)
+                )
+            )
+        }
+
         fun translate(dx: Double, dy: Double, dz: Double): Matrix {
             return Matrix(
                 listOf(

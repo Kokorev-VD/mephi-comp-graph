@@ -66,8 +66,4 @@ data class Vector(
     infix fun scalarMultiple(other: Vector): Double {
         return this.x * other.x + this.y * other.y + this.z * other.z
     }
-
-    fun copy(): Vector {
-        return Vector(x, y, z)
-    }
 }
