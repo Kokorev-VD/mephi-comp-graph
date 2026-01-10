@@ -57,7 +57,7 @@ class Image8bpp(val width: Int, val height: Int) {
 
         for (element in stackTrace) {
             val className = element.className
-            if (className.startsWith("lab") && !className.contains("Image8bpp")) {
+            if ((className.startsWith("lab") || className.startsWith("hw")) && !className.contains("Image8bpp")) {
                 callerPackage = className.substringBefore(".")
                 break
             }
