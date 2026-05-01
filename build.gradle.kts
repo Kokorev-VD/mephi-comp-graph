@@ -23,7 +23,7 @@ kotlin {
 }
 
 application {
-    mainClass.set("lab5.Lab5MainKt")
+    mainClass.set(providers.gradleProperty("mainClass").orElse("cgi.lab1.Lab1MainKt"))
 }
 
 tasks.withType<JavaExec> {

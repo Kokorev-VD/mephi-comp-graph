@@ -78,8 +78,18 @@ class Image24bpp(val width: Int, val height: Int) {
 
         for (element in stackTrace) {
             val className = element.className
-            if (className.startsWith("hw") && !className.contains("Image24bpp")) {
-                callerPackage = className.substringBefore(".")
+            if (className.contains("Image24bpp")) continue
+
+            val resolved = when {
+                className.startsWith("cgi.") || className.startsWith("legacy.") -> {
+                    val parts = className.split(".")
+                    if (parts.size >= 2) "${parts[0]}/${parts[1]}" else null
+                }
+                className.startsWith("lab") || className.startsWith("hw") -> className.substringBefore(".")
+                else -> null
+            }
+            if (resolved != null) {
+                callerPackage = resolved
                 break
             }
         }
