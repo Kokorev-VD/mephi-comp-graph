@@ -1,6 +1,8 @@
 package cgi.lab3
 
 import common.Image8bpp
+import common.benchmark
+import kotlin.math.abs
 import kotlin.math.cos
 import kotlin.math.floor
 import kotlin.math.log10
@@ -73,15 +75,22 @@ private fun pixelOrZero(img: Image8bpp, x: Int, y: Int): Double {
 fun rotate(src: Image8bpp, angleRad: Double, sampler: Sampler): Image8bpp {
     val w = src.width
     val h = src.height
-    val cx = (w - 1) / 2.0
-    val cy = (h - 1) / 2.0
     val cosA = cos(angleRad)
     val sinA = sin(angleRad)
-    val out = Image8bpp(w, h)
-    for (y in 0 until h) {
-        val dy = y - cy
-        for (x in 0 until w) {
-            val dx = x - cx
+
+    val newW = (abs(w * cosA) + abs(h * sinA)).roundToInt()
+    val newH = (abs(w * sinA) + abs(h * cosA)).roundToInt()
+
+    val cx = (w - 1) / 2.0
+    val cy = (h - 1) / 2.0
+    val newCx = (newW - 1) / 2.0
+    val newCy = (newH - 1) / 2.0
+
+    val out = Image8bpp(newW, newH)
+    for (y in 0 until newH) {
+        val dy = y - newCy
+        for (x in 0 until newW) {
+            val dx = x - newCx
             val xs =  cosA * dx + sinA * dy + cx
             val ys = -sinA * dx + cosA * dy + cy
             val v = sampler(src, xs, ys).coerceIn(0.0, MAX_I).roundToInt().toUByte()
@@ -89,6 +98,18 @@ fun rotate(src: Image8bpp, angleRad: Double, sampler: Sampler): Image8bpp {
         }
     }
     return out
+}
+
+private fun centeredCrop(img: Image8bpp, cropW: Int, cropH: Int): Image8bpp {
+    val x0 = (img.width - cropW) / 2
+    val y0 = (img.height - cropH) / 2
+    val result = Image8bpp(cropW, cropH)
+    for (y in 0 until cropH) {
+        for (x in 0 until cropW) {
+            result.setPixel(x, y, img.getPixel(x0 + x, y0 + y))
+        }
+    }
+    return result
 }
 
 fun psnrCentralCircle(a: Image8bpp, b: Image8bpp): Double {
@@ -140,22 +161,21 @@ fun main() {
     println("Метод           Поворот, мс   Туда+обратно, мс   PSNR, дБ")
     println("---------------------------------------------------------")
     for ((name, suffix, sampler) in methods) {
-        val t0 = System.nanoTime()
-        val rotated = rotate(image, angleRad, sampler)
-        val tForward = (System.nanoTime() - t0) / 1e6
+        val tForward = benchmark { rotate(image, angleRad, sampler) }
 
+        val rotated = rotate(image, angleRad, sampler)
         val rotatedName = "rotated_${suffix}.png"
         rotated.save(rotatedName)
         taskResult.add(rotatedName)
 
-        val tt0 = System.nanoTime()
-        val back = rotate(rotated, -angleRad, sampler)
-        val tBack = (System.nanoTime() - tt0) / 1e6
+        val tBack = benchmark { rotate(rotated, -angleRad, sampler) }
 
-        val psnr = psnrCentralCircle(image, back)
+        val back = rotate(rotated, -angleRad, sampler)
+        val backCropped = centeredCrop(back, image.width, image.height)
+        val psnr = psnrCentralCircle(image, backCropped)
 
         val roundtripName = "roundtrip_${suffix}.png"
-        back.save(roundtripName)
+        backCropped.save(roundtripName)
         taskResult.add(roundtripName)
 
         val psnrStr = if (psnr.isInfinite()) "∞" else "%.3f".format(psnr)

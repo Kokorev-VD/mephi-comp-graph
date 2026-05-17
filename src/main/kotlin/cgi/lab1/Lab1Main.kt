@@ -1,14 +1,16 @@
 package cgi.lab1
 
 import common.Image8bpp
-import kotlin.math.PI
-import kotlin.math.cos
+import common.addGaussianNoise
+import common.psnr
 import kotlin.math.ln
-import kotlin.math.log10
 import kotlin.math.log2
 import kotlin.math.roundToInt
 import kotlin.math.sqrt
 import kotlin.random.Random
+
+private const val GLCM_TEX_SIZE = 256
+private const val GLCM_TEX_SEED = 42L
 
 private const val L = 256
 private const val MAX_I = 255.0
@@ -112,35 +114,50 @@ fun glcmEnergy(m: Array<DoubleArray>): Double {
     return s
 }
 
-fun addAwgn(image: Image8bpp, variance: Double, seed: Long): Image8bpp {
-    val sigma = sqrt(variance)
-    val rnd = Random(seed)
-    val out = Image8bpp(image.width, image.height)
-    for (y in 0 until image.height) {
-        for (x in 0 until image.width) {
-            val u1 = 1.0 - rnd.nextDouble()
-            val u2 = rnd.nextDouble()
-            val z = sqrt(-2.0 * ln(u1)) * cos(2.0 * PI * u2)
-            val noisy = image.getPixel(x, y).toInt() + sigma * z
-            val clamped = noisy.roundToInt().coerceIn(0, 255).toUByte()
-            out.setPixel(x, y, clamped)
+fun glcmToImage(m: Array<DoubleArray>, log: Boolean): Image8bpp {
+    val img = Image8bpp(L, L)
+    var mx = 0.0
+    for (a in 0 until L) for (b in 0 until L) if (m[a][b] > mx) mx = m[a][b]
+    if (mx <= 0.0) return img
+    if (log) {
+        val denom = ln(1.0 + mx)
+        for (a in 0 until L) for (b in 0 until L) {
+            val v = ln(1.0 + m[a][b]) / denom
+            img.setPixel(b, a, (v * 255.0).roundToInt().coerceIn(0, 255).toUByte())
+        }
+    } else {
+        for (a in 0 until L) for (b in 0 until L) {
+            val v = m[a][b] / mx
+            img.setPixel(b, a, (v * 255.0).roundToInt().coerceIn(0, 255).toUByte())
         }
     }
-    return out
+    return img
 }
 
-fun psnr(a: Image8bpp, b: Image8bpp): Double {
-    var mse = 0.0
-    val n = a.width * a.height
-    for (y in 0 until a.height) {
-        for (x in 0 until a.width) {
-            val d = a.getPixel(x, y).toInt() - b.getPixel(x, y).toInt()
-            mse += d.toDouble() * d
-        }
+fun textureStripes(w: Int = GLCM_TEX_SIZE, h: Int = GLCM_TEX_SIZE, period: Int = 8): Image8bpp {
+    val img = Image8bpp(w, h)
+    for (y in 0 until h) for (x in 0 until w) {
+        img.setPixel(x, y, if ((x / period) % 2 == 0) 0u else 255u)
     }
-    mse /= n
-    if (mse == 0.0) return Double.POSITIVE_INFINITY
-    return 10.0 * log10(MAX_I * MAX_I / mse)
+    return img
+}
+
+fun textureCheckerboard(w: Int = GLCM_TEX_SIZE, h: Int = GLCM_TEX_SIZE, cell: Int = 16): Image8bpp {
+    val img = Image8bpp(w, h)
+    for (y in 0 until h) for (x in 0 until w) {
+        val cb = ((x / cell) + (y / cell)) % 2
+        img.setPixel(x, y, if (cb == 0) 0u else 255u)
+    }
+    return img
+}
+
+fun textureNoise(w: Int = GLCM_TEX_SIZE, h: Int = GLCM_TEX_SIZE, seed: Long = GLCM_TEX_SEED): Image8bpp {
+    val img = Image8bpp(w, h)
+    val rnd = Random(seed)
+    for (y in 0 until h) for (x in 0 until w) {
+        img.setPixel(x, y, rnd.nextInt(L).toUByte())
+    }
+    return img
 }
 
 fun renderHistogram(h: IntArray, height: Int = 200): Image8bpp {
@@ -194,7 +211,7 @@ fun main() {
     println("Задача 3. Аддитивный белый гауссов шум (AWGN) и PSNR")
     val task3Result = mutableListOf<String>()
 
-    val noisy = addAwgn(image, NOISE_VARIANCE, SEED)
+    val noisy = addGaussianNoise(image, sqrt(NOISE_VARIANCE), SEED)
     noisy.save("noisy.png")
     task3Result.add("noisy.png")
 
@@ -207,6 +224,45 @@ fun main() {
     task3Result.add("histogram_noisy.png")
 
     println("Результат задачи 3 сохранен: $task3Result\n")
+
+    println("Задача 4 (доработка). GLCM как grayscale изображение: фото vs текстуры")
+    val task4Result = mutableListOf<String>()
+
+    val sources = mutableListOf<Triple<String, Image8bpp, Boolean>>()
+    for (photoName in listOf("cat", "evening", "squirrel")) {
+        sources += Triple(photoName, Image8bpp.load("src/main/resources/common/$photoName.png"), false)
+    }
+    sources += Triple("tex_stripes_v", textureStripes(), true)
+    sources += Triple("tex_stripes_h", textureStripes(), true)
+    sources += Triple("tex_checker", textureCheckerboard(), true)
+    sources += Triple("tex_noise", textureNoise(), true)
+
+    val dr4 = 0
+    val dc4 = 1
+    println("Смещение: dr=$dr4, dc=$dc4 (горизонтальный сосед)")
+    println("%-16s %-12s %-14s %-12s %-10s".format("источник", "размер", "энергия GLCM", "max P", "≥1% max"))
+
+    for ((srcName, srcImage, saveSrc) in sources) {
+        if (saveSrc) {
+            srcImage.save("$srcName.png")
+            task4Result.add("$srcName.png")
+        }
+        val m = glcm(srcImage, dr4, dc4)
+        val e = glcmEnergy(m)
+        var mx = 0.0
+        for (a in 0 until L) for (b in 0 until L) if (m[a][b] > mx) mx = m[a][b]
+        var occupied = 0
+        if (mx > 0.0) for (a in 0 until L) for (b in 0 until L) if (m[a][b] >= 0.01 * mx) occupied++
+        println("%-16s %-12s %-14.6e %-12.6f %-10d".format(
+            srcName, "${srcImage.width}x${srcImage.height}", e, mx, occupied))
+        val lin = "glcm_${srcName}_lin.png"
+        val log = "glcm_${srcName}_log.png"
+        glcmToImage(m, log = false).save(lin)
+        glcmToImage(m, log = true).save(log)
+        task4Result.add(lin)
+        task4Result.add(log)
+    }
+    println("Результат задачи 4 сохранен (${task4Result.size} файлов): см. префикс glcm_*\n")
 
     println("\nРезультаты задач сохранены тут: src/main/resources/cgi/lab1/")
 }

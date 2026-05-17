@@ -1,6 +1,7 @@
 package cgi.lab6
 
 import common.Image8bpp
+import common.benchmark
 import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.max
@@ -34,6 +35,25 @@ fun main() {
     labelImage.save("labels.png")
     task2Result.add("labels.png")
     println("Результат задачи 2 сохранен: $task2Result\n")
+
+    println("Задача 2а. Двухпроходный алгоритм разметки (Two-Pass CCL)")
+    val task2aResult = mutableListOf<String>()
+    val labelsTwoPass = labelConnectedComponentsTwoPass(binary)
+    val regionsCountTwoPass = labelsTwoPass.maxOrNull() ?: 0
+    println("Найдено областей (Two-Pass): $regionsCountTwoPass")
+    val labelImageTwoPass = renderLabels(labelsTwoPass, binary.width, binary.height)
+    labelImageTwoPass.save("labels_twopass.png")
+    task2aResult.add("labels_twopass.png")
+    println("Результат задачи 2а сохранен: $task2aResult\n")
+
+    println("Сравнение времени работы алгоритмов разметки")
+    val runs = 100
+    val msFlood = benchmark(repeats = runs, warmup = 5) { labelConnectedComponents4(binary) }
+    val msTwoPass = benchmark(repeats = runs, warmup = 5) { labelConnectedComponentsTwoPass(binary) }
+    println("FloodFill : ${"%.3f".format(msFlood)} мс (среднее за $runs запусков)")
+    println("Two-Pass  : ${"%.3f".format(msTwoPass)} мс (среднее за $runs запусков)")
+    println("Отношение FloodFill / Two-Pass: ${"%.2f".format(msFlood / msTwoPass)}")
+    println("Количество областей совпадает: ${regionsCount == regionsCountTwoPass}\n")
 
     println("Задача 3. Геометрические моменты областей и отбор круглых (S > $MIN_AREA)")
     val regions = computeRegionMoments(labels, binary.width, binary.height, regionsCount)
@@ -194,6 +214,75 @@ private fun labelConnectedComponents4(binary: Image8bpp): IntArray {
         }
     }
     return labels
+}
+
+private fun labelConnectedComponentsTwoPass(binary: Image8bpp): IntArray {
+    val w = binary.width
+    val h = binary.height
+    val labels = IntArray(w * h)
+    var nextLabel = 1
+    val uf = UnionFind(w * h / 2 + 1)
+
+    for (y in 0 until h) {
+        for (x in 0 until w) {
+            val idx = y * w + x
+            if (binary.getPixel(x, y).toInt() != 255) continue
+
+            val neighbors = mutableListOf<Int>()
+            if (y > 0) {
+                val up = labels[(y - 1) * w + x]
+                if (up != 0) neighbors.add(up)
+            }
+            if (x > 0) {
+                val left = labels[y * w + (x - 1)]
+                if (left != 0) neighbors.add(left)
+            }
+
+            if (neighbors.isEmpty()) {
+                labels[idx] = nextLabel
+                nextLabel++
+            } else {
+                val minLabel = neighbors.min()
+                labels[idx] = minLabel
+                for (n in neighbors) {
+                    uf.union(minLabel, n)
+                }
+            }
+        }
+    }
+
+    val rootToNew = mutableMapOf<Int, Int>()
+    var newLabel = 0
+    for (i in labels.indices) {
+        if (labels[i] == 0) continue
+        val root = uf.find(labels[i])
+        val mapped = rootToNew.getOrPut(root) { ++newLabel }
+        labels[i] = mapped
+    }
+
+    return labels
+}
+
+private class UnionFind(initialSize: Int) {
+    private val parent = IntArray(initialSize) { it }
+
+    fun find(x: Int): Int {
+        var root = x
+        while (parent[root] != root) root = parent[root]
+        var cur = x
+        while (parent[cur] != root) {
+            val next = parent[cur]
+            parent[cur] = root
+            cur = next
+        }
+        return root
+    }
+
+    fun union(a: Int, b: Int) {
+        val ra = find(a)
+        val rb = find(b)
+        if (ra != rb) parent[rb] = ra
+    }
 }
 
 private fun renderLabels(labels: IntArray, w: Int, h: Int): Image8bpp {

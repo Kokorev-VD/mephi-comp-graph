@@ -1,6 +1,4 @@
-package cgi.lab4
-
-import common.Image8bpp
+package common
 
 fun convolve(image: Image8bpp, kernel: Array<DoubleArray>): Array<DoubleArray> {
     val kh = kernel.size

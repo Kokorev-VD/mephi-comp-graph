@@ -1,15 +1,19 @@
 package cgi.lab4
 
 import common.Image8bpp
+import common.convolve
+import common.toImage
+import common.toImageNormalized
 import kotlin.math.abs
+import kotlin.math.exp
 
-fun lowPassGaussian(image: Image8bpp): Image8bpp {
-    val data = convolve(image, gaussianKernel5())
-    return toImage(data)
+fun lowPassGaussian(image: Image8bpp, kernelSize: Int = 5, sigma: Double? = null): Image8bpp {
+    val kernel = gaussianKernel(kernelSize, sigma)
+    return toImage(convolve(image, kernel))
 }
 
-fun averagingWithThreshold(image: Image8bpp, threshold: Int = 20): Image8bpp {
-    val smoothed = convolve(image, gaussianKernel5())
+fun averagingWithThreshold(image: Image8bpp, threshold: Int = 20, kernelSize: Int = 5): Image8bpp {
+    val smoothed = convolve(image, gaussianKernel(kernelSize))
     val w = image.width
     val h = image.height
     val out = Image8bpp(w, h)
@@ -24,33 +28,64 @@ fun averagingWithThreshold(image: Image8bpp, threshold: Int = 20): Image8bpp {
     return out
 }
 
-fun highPassLaplacian(image: Image8bpp): Image8bpp {
-    val data = convolve(image, laplacianKernel())
+fun highPassLaplacian(image: Image8bpp, kernelSize: Int = 3): Image8bpp {
+    val data = convolve(image, laplacianKernel(kernelSize))
     return toImageNormalized(data)
 }
 
-fun highPassLoG(image: Image8bpp, sigma: Double = 1.4): Image8bpp {
-    val data = convolve(image, logKernel(sigma))
+fun highPassLoG(image: Image8bpp, sigma: Double = 1.4, kernelSize: Int? = null): Image8bpp {
+    val data = convolve(image, logKernel(sigma, kernelSize))
     return toImageNormalized(data)
 }
 
-fun sharpen(image: Image8bpp, alpha: Double = 1.0): Image8bpp {
-    val lap = convolve(image, laplacianKernel())
+fun sharpenConvolution(image: Image8bpp, kernelSize: Int = 3, alpha: Double = 1.0): Image8bpp {
+    val kernel = sharpenKernel(kernelSize, alpha)
+    val data = convolve(image, kernel)
+    return toImage(data)
+}
+
+fun bilateralFilter(
+    image: Image8bpp,
+    kernelSize: Int = 5,
+    sigmaSpatial: Double = 2.0,
+    sigmaRange: Double = 30.0
+): Image8bpp {
+    require(kernelSize % 2 == 1 && kernelSize >= 3) { "Размер ядра должен быть нечётным и ≥ 3" }
     val w = image.width
     val h = image.height
+    val radius = kernelSize / 2
+    val s2Spatial = 2.0 * sigmaSpatial * sigmaSpatial
+    val s2Range = 2.0 * sigmaRange * sigmaRange
     val out = Image8bpp(w, h)
+
     for (y in 0 until h) {
         for (x in 0 until w) {
-            val orig = image.getPixel(x, y).toInt().toDouble()
-            val v = (orig - alpha * lap[y][x]).toInt().coerceIn(0, 255)
-            out.setPixel(x, y, v.toUByte())
+            val centerVal = image.getPixel(x, y).toInt().toDouble()
+            var sumWeighted = 0.0
+            var sumWeights = 0.0
+            for (ky in -radius..radius) {
+                val sy = (y + ky).coerceIn(0, h - 1)
+                for (kx in -radius..radius) {
+                    val sx = (x + kx).coerceIn(0, w - 1)
+                    val neighborVal = image.getPixel(sx, sy).toInt().toDouble()
+                    val spatialDist = (kx * kx + ky * ky).toDouble()
+                    val rangeDist = (neighborVal - centerVal) * (neighborVal - centerVal)
+                    val wSpatial = exp(-spatialDist / s2Spatial)
+                    val wRange = exp(-rangeDist / s2Range)
+                    val weight = wSpatial * wRange
+                    sumWeighted += weight * neighborVal
+                    sumWeights += weight
+                }
+            }
+            val v = (sumWeighted / sumWeights).toInt().coerceIn(0, 255).toUByte()
+            out.setPixel(x, y, v)
         }
     }
     return out
 }
 
-fun edgesByZeroCrossing(image: Image8bpp, sigma: Double = 1.4): Image8bpp {
-    val ie = convolve(image, logKernel(sigma))
+fun edgesByZeroCrossing(image: Image8bpp, sigma: Double = 1.4, kernelSize: Int? = null): Image8bpp {
+    val ie = convolve(image, logKernel(sigma, kernelSize))
     val w = image.width
     val h = image.height
 
