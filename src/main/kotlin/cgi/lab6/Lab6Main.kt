@@ -138,7 +138,7 @@ private fun fillTriangle(
     }
 }
 
-private fun otsuThreshold(img: Image8bpp): Int {
+fun otsuThreshold(img: Image8bpp): Int {
     val hist = IntArray(256)
     for (y in 0 until img.height) {
         for (x in 0 until img.width) hist[img.getPixel(x, y).toInt()]++
@@ -168,7 +168,7 @@ private fun otsuThreshold(img: Image8bpp): Int {
     return bestT
 }
 
-private fun binarize(img: Image8bpp, threshold: Int): Image8bpp {
+fun binarize(img: Image8bpp, threshold: Int): Image8bpp {
     val out = Image8bpp(img.width, img.height)
     for (y in 0 until img.height) {
         for (x in 0 until img.width) {
@@ -216,7 +216,7 @@ private fun labelConnectedComponents4(binary: Image8bpp): IntArray {
     return labels
 }
 
-private fun labelConnectedComponentsTwoPass(binary: Image8bpp): IntArray {
+fun labelConnectedComponentsTwoPass(binary: Image8bpp): IntArray {
     val w = binary.width
     val h = binary.height
     val labels = IntArray(w * h)
@@ -263,7 +263,7 @@ private fun labelConnectedComponentsTwoPass(binary: Image8bpp): IntArray {
     return labels
 }
 
-private class UnionFind(initialSize: Int) {
+class UnionFind(initialSize: Int) {
     private val parent = IntArray(initialSize) { it }
 
     fun find(x: Int): Int {
@@ -297,7 +297,7 @@ private fun renderLabels(labels: IntArray, w: Int, h: Int): Image8bpp {
     return out
 }
 
-private data class RegionMoments(
+data class RegionMoments(
     val label: Int,
     val area: Long,
     val m10: Double,
@@ -309,7 +309,7 @@ private data class RegionMoments(
     val mu11: Double
 )
 
-private fun computeRegionMoments(labels: IntArray, w: Int, h: Int, count: Int): List<RegionMoments> {
+fun computeRegionMoments(labels: IntArray, w: Int, h: Int, count: Int): List<RegionMoments> {
     if (count == 0) return emptyList()
     val area = LongArray(count + 1)
     val sx = DoubleArray(count + 1)
